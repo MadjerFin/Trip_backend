@@ -5,7 +5,7 @@ import com.seuprojeto.trip.repository.PropostaRepository;
 import com.seuprojeto.trip.exception.ApiException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 
 @Service
 public class PropostaService {
