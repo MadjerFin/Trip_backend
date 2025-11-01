@@ -1,5 +1,7 @@
 package com.seuprojeto.trip.controller;
 
+import com.seuprojeto.trip.dto.UserResponseDTO;
+import com.seuprojeto.trip.exception.ApiException;
 import com.seuprojeto.trip.model.User;
 import com.seuprojeto.trip.service.UserService;
 import jakarta.validation.Valid; // ✅ trocado de javax -> jakarta
@@ -8,8 +10,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-// (Opcional) libere CORS só para front-end conhecido
-@CrossOrigin(origins = {"http://localhost:3000", "https://seu-frontend.exemplo"}, allowCredentials = "true")
+// Permite requisições do frontend (localhost e Vercel)
+@CrossOrigin(origins = {"http://localhost:3000", "https://trip-red.vercel.app"}, allowCredentials = "true")
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
@@ -34,7 +36,13 @@ public class UserController {
     public ResponseEntity<?> register(@Valid @RequestBody User user) {
         try {
             userService.save(user);
-            return ResponseEntity.status(HttpStatus.CREATED).body(user);
+            // Retorna o DTO sem a senha
+            UserResponseDTO response = UserResponseDTO.fromUser(user);
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (ApiException e) {
+            // Erro de validação (ex: email duplicado) - retorna 400 Bad Request
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(e.getMessage());
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -47,7 +55,9 @@ public class UserController {
     public ResponseEntity<?> login(@RequestBody User user) {
         var logged = userService.login(user.getEmail(), user.getSenha());
         if (logged != null) {
-            return ResponseEntity.ok(logged);
+            // Retorna o DTO sem a senha
+            UserResponseDTO response = UserResponseDTO.fromUser(logged);
+            return ResponseEntity.ok(response);
         }
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body("E-mail ou senha inválidos");
@@ -56,6 +66,10 @@ public class UserController {
     // Listar todos
     @GetMapping
     public ResponseEntity<?> getAll() {
-        return ResponseEntity.ok(userService.findAll());
+        var users = userService.findAll();
+        var usersDTO = users.stream()
+                .map(UserResponseDTO::fromUser)
+                .toList();
+        return ResponseEntity.ok(usersDTO);
     }
 }
